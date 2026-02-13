@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient" // Ensure this path matches your project structure
+import { supabase } from "@/lib/supabaseClient"
 
 export default function Home() {
   const [user, setUser] = useState(null)
@@ -11,7 +11,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 1. Check active session on load
     const getSession = async () => {
       const { data } = await supabase.auth.getSession()
 
@@ -26,7 +25,6 @@ export default function Home() {
 
     getSession()
 
-    // 2. Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
@@ -45,7 +43,6 @@ export default function Home() {
     }
   }, [])
 
-  // Fetch data from Supabase
   const fetchBookmarks = async (userId) => {
     const { data, error } = await supabase
       .from("bookmarks")
@@ -57,15 +54,13 @@ export default function Home() {
     else setBookmarks(data || [])
   }
 
-  // Real-time Subscription (Syncs other tabs)
   const subscribeToChanges = (userId) => {
     const channel = supabase
       .channel("realtime-bookmarks")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookmarks" },
-        (payload) => {
-          // If a change happens (in another tab), re-fetch the list to stay in sync
+        () => {
           fetchBookmarks(userId)
         }
       )
@@ -76,17 +71,14 @@ export default function Home() {
     }
   }
 
-  // Add Bookmark (INSTANT UPDATE)
   const addBookmark = async () => {
     if (!title || !url || !user) return
 
-    // Auto-fix URL
     let finalUrl = url
     if (!/^https?:\/\//i.test(url)) {
-      finalUrl = 'https://' + url
+      finalUrl = "https://" + url
     }
 
-    // 1. Send to Supabase and ask for the data back (.select())
     const { data, error } = await supabase
       .from("bookmarks")
       .insert([
@@ -102,7 +94,6 @@ export default function Home() {
       console.error("Error adding:", error.message)
       alert("Error adding: " + error.message)
     } else {
-      // 2. Update screen IMMEDIATELY using the data we just got back
       if (data) {
         setBookmarks([data[0], ...bookmarks])
       }
@@ -111,19 +102,18 @@ export default function Home() {
     }
   }
 
-  // Delete Bookmark (INSTANT UPDATE)
   const deleteBookmark = async (id) => {
-    // 1. Update screen IMMEDIATELY (Optimistic update)
-    const originalBookmarks = [...bookmarks] // Keep a backup in case of error
+    const originalBookmarks = [...bookmarks]
     setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
 
-    // 2. Send delete command to Supabase
-    const { error } = await supabase.from("bookmarks").delete().eq("id", id)
+    const { error } = await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("id", id)
 
     if (error) {
       console.error("Error deleting:", error.message)
       alert("Error deleting: " + error.message)
-      // Revert if there was an error
       setBookmarks(originalBookmarks)
     }
   }
@@ -144,17 +134,23 @@ export default function Home() {
   }
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    )
   }
 
   if (!user) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center space-y-4 p-8 bg-white rounded-lg shadow-md">
-          <h1 className="text-4xl font-bold mb-6 text-gray-800">Smart Bookmark App</h1>
+          <h1 className="text-4xl font-bold mb-6 text-gray-800">
+            Smart Bookmark App
+          </h1>
           <button
             onClick={handleLogin}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg transition-colors w-full"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg transition-colors w-full cursor-pointer"
           >
             Login with Google
           </button>
@@ -166,10 +162,14 @@ export default function Home() {
   return (
     <div className="max-w-2xl mx-auto mt-10 p-4 space-y-6">
       <div className="flex justify-between items-center border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-800">Smart Bookmarks 🚀</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Smart Bookmarks 🚀
+        </h1>
         <div className="text-right">
           <p className="text-xs text-gray-500">Logged in as</p>
-          <p className="text-sm font-medium text-gray-700">{user.email}</p>
+          <p className="text-sm font-medium text-gray-700">
+            {user.email}
+          </p>
         </div>
       </div>
 
@@ -189,7 +189,7 @@ export default function Home() {
         <button
           onClick={addBookmark}
           disabled={!title || !url}
-          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-6 py-2 rounded font-medium transition-colors"
+          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-6 py-2 rounded font-medium transition-colors cursor-pointer"
         >
           Add
         </button>
@@ -215,11 +215,13 @@ export default function Home() {
                 >
                   {bookmark.title}
                 </a>
-                <span className="text-xs text-gray-400 truncate max-w-md">{bookmark.url}</span>
+                <span className="text-xs text-gray-400 truncate max-w-md">
+                  {bookmark.url}
+                </span>
               </div>
               <button
                 onClick={() => deleteBookmark(bookmark.id)}
-                className="ml-4 text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition-colors text-sm font-semibold whitespace-nowrap"
+                className="ml-4 text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition-colors text-sm font-semibold whitespace-nowrap cursor-pointer"
               >
                 Delete
               </button>
@@ -231,7 +233,7 @@ export default function Home() {
       <div className="pt-6 border-t flex justify-end">
         <button
           onClick={handleLogout}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm transition-colors"
+          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm transition-colors cursor-pointer"
         >
           Logout
         </button>
